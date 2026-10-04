@@ -1,0 +1,39 @@
+name: alertas-usdt-ars
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "alerta = avisa solo si hay margen | estado = te manda el estado actual"
+        type: choice
+        default: alerta
+        options: [alerta, estado]
+
+concurrency:
+  group: alertas
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: .state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+      - run: node src/check.mjs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MODO: ${{ github.event.inputs.modo || 'alerta' }}
